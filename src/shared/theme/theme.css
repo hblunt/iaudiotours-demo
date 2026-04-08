@@ -86,8 +86,6 @@
 *::before,
 *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 html, body, #root {
@@ -110,7 +108,6 @@ h1, h2, h3, h4 {
 button {
   font-family: var(--font-body);
   cursor: pointer;
-  border: none;
   outline: none;
 }
 

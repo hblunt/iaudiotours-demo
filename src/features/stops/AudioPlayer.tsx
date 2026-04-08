@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import './AudioPlayer.css';
+import { Play, Pause } from 'lucide-react';
 
 interface AudioPlayerProps {
   src: string;
@@ -12,25 +12,24 @@ export function AudioPlayer({ src }: AudioPlayerProps) {
   const [duration, setDuration] = useState(0);
 
   useEffect(() => {
-    // Reset state when src changes
     setPlaying(false);
     setProgress(0);
     setDuration(0);
   }, [src]);
 
   if (!src) {
-    return <p className="audio-placeholder">Audio coming soon</p>;
+    return (
+      <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>
+        Audio coming soon
+      </p>
+    );
   }
 
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
-
-    if (playing) {
-      audio.pause();
-    } else {
-      audio.play();
-    }
+    if (playing) audio.pause();
+    else audio.play();
     setPlaying(!playing);
   };
 
@@ -41,8 +40,7 @@ export function AudioPlayer({ src }: AudioPlayerProps) {
   };
 
   const handleLoadedMetadata = () => {
-    const audio = audioRef.current;
-    if (audio) setDuration(audio.duration);
+    if (audioRef.current) setDuration(audioRef.current.duration);
   };
 
   const handleEnded = () => {
@@ -54,8 +52,7 @@ export function AudioPlayer({ src }: AudioPlayerProps) {
     const audio = audioRef.current;
     if (!audio || !audio.duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    audio.currentTime = pct * audio.duration;
+    audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
   };
 
   const formatTime = (secs: number) => {
@@ -65,7 +62,7 @@ export function AudioPlayer({ src }: AudioPlayerProps) {
   };
 
   return (
-    <div className="audio-player">
+    <div className="flex items-center gap-3 py-2 px-3 rounded-xl bg-white/[0.04] border border-white/[0.06]">
       <audio
         ref={audioRef}
         src={src}
@@ -74,15 +71,31 @@ export function AudioPlayer({ src }: AudioPlayerProps) {
         onEnded={handleEnded}
         preload="metadata"
       />
-      <button className="audio-play-btn" onClick={togglePlay}>
-        {playing ? '⏸' : '▶'}
+      <button
+        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
+        style={{
+          background: 'var(--color-accent)',
+          color: '#1A1A1A',
+        }}
+        onClick={togglePlay}
+      >
+        {playing ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
       </button>
-      <div className="audio-track" onClick={handleSeek}>
-        <div className="audio-progress" style={{ width: `${progress}%` }} />
+      <div className="flex-1 flex flex-col gap-1.5">
+        <div
+          className="h-[3px] rounded-full cursor-pointer overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.08)' }}
+          onClick={handleSeek}
+        >
+          <div
+            className="h-full rounded-full transition-[width] duration-100 ease-linear"
+            style={{ width: `${progress}%`, background: 'var(--color-accent)' }}
+          />
+        </div>
+        <span className="text-[0.65rem] tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
+          {duration ? formatTime(duration) : '0:00'}
+        </span>
       </div>
-      <span className="audio-duration">
-        {duration ? formatTime(duration) : '0:00'}
-      </span>
     </div>
   );
 }

@@ -1,7 +1,11 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
+import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useMapContext } from './MapContext';
 import type { TourStop } from '../stops/types';
+import { Map, Layers } from 'lucide-react';
+import { PinContainer } from '@/components/ui/3d-pin';
 import './MapView.css';
 
 interface MapViewProps {
@@ -10,117 +14,101 @@ interface MapViewProps {
   children?: React.ReactNode;
 }
 
-const SOURCE_ID = 'tour-stops';
-const CIRCLE_LAYER = 'tour-stops-circle';
-const PULSE_LAYER = 'tour-stops-pulse';
-
-function buildGeoJSON(stops: TourStop[]): GeoJSON.FeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: stops.map((stop) => ({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [stop.coordinates[1], stop.coordinates[0]], // [lng, lat]
-      },
-      properties: {
-        id: stop.id,
-        name: stop.name,
-      },
-    })),
-  };
-}
+const ZOOM_ACTIVATE_THRESHOLD = 16.5;
 
 export function MapView({ stops, onStopActivated, children }: MapViewProps) {
   const { mapRef, mapLoaded, isSatellite, toggleStyle } = useMapContext();
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
 
-  const addLayers = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    // Remove existing if present (e.g. after style swap)
-    if (map.getLayer(PULSE_LAYER)) map.removeLayer(PULSE_LAYER);
-    if (map.getLayer(CIRCLE_LAYER)) map.removeLayer(CIRCLE_LAYER);
-    if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
-
-    map.addSource(SOURCE_ID, {
-      type: 'geojson',
-      data: buildGeoJSON(stops),
-    });
-
-    // Outer pulse ring
-    map.addLayer({
-      id: PULSE_LAYER,
-      type: 'circle',
-      source: SOURCE_ID,
-      paint: {
-        'circle-radius': 18,
-        'circle-color': 'transparent',
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#D4A574',
-        'circle-stroke-opacity': 0.4,
-      },
-    });
-
-    // Main marker dot
-    map.addLayer({
-      id: CIRCLE_LAYER,
-      type: 'circle',
-      source: SOURCE_ID,
-      paint: {
-        'circle-radius': 10,
-        'circle-color': '#D4A574',
-        'circle-stroke-width': 3,
-        'circle-stroke-color': '#FFFFFF',
-      },
-    });
-
-    // Click handler
-    map.on('click', CIRCLE_LAYER, (e) => {
-      const feature = e.features?.[0];
-      if (feature?.properties?.id) {
-        onStopActivated(feature.properties.id);
-      }
-    });
-
-    // Pointer cursor on hover
-    map.on('mouseenter', CIRCLE_LAYER, () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-    map.on('mouseleave', CIRCLE_LAYER, () => {
-      map.getCanvas().style.cursor = '';
-    });
-  }, [mapRef, stops, onStopActivated]);
-
-  // Add layers on initial load
-  useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return;
-    addLayers();
-  }, [mapLoaded, addLayers, mapRef]);
-
-  // Re-add layers after style swap (style.load fires, layers are lost)
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !mapLoaded) return;
 
-    const handleStyleLoad = () => {
-      addLayers();
-    };
+    // Clean up old markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
 
-    map.on('style.load', handleStyleLoad);
+    stops.forEach((stop) => {
+      const el = document.createElement('div');
+      el.style.cursor = 'pointer';
+
+      const root = createRoot(el);
+      root.render(
+        <PinContainer
+          title={stop.name}
+          stopId={stop.id}
+          onClick={() => onStopActivated(stop.id)}
+        />
+      );
+
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'center', offset: [0, 3] })
+        .setLngLat([stop.coordinates[1], stop.coordinates[0]])
+        .addTo(map);
+
+      markersRef.current.push(marker);
+    });
+
     return () => {
-      map.off('style.load', handleStyleLoad);
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current = [];
     };
-  }, [mapRef, addLayers]);
+  }, [mapRef, mapLoaded, stops, onStopActivated]);
+
+  // Check which stops are near center on zoom/move
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const checkProximity = () => {
+      const activeIds: string[] = [];
+
+      if (map.getZoom() >= ZOOM_ACTIVATE_THRESHOLD) {
+        const center = map.getCenter();
+        const centerPx = map.project(center);
+        const viewportW = map.getCanvas().clientWidth;
+        const viewportH = map.getCanvas().clientHeight;
+        // Activate pins within the center 50% of the viewport
+        const radiusX = viewportW * 0.25;
+        const radiusY = viewportH * 0.25;
+
+        stops.forEach((stop) => {
+          const stopPx = map.project([stop.coordinates[1], stop.coordinates[0]]);
+          const dx = Math.abs(stopPx.x - centerPx.x);
+          const dy = Math.abs(stopPx.y - centerPx.y);
+          if (dx < radiusX && dy < radiusY) {
+            activeIds.push(stop.id);
+          }
+        });
+      }
+
+      window.dispatchEvent(new CustomEvent('pin-zoom-activate', { detail: { activeIds } }));
+    };
+
+    map.on('zoom', checkProximity);
+    map.on('move', checkProximity);
+    return () => {
+      map.off('zoom', checkProximity);
+      map.off('move', checkProximity);
+    };
+  }, [mapRef, mapLoaded, stops]);
 
   return (
     <div className="map-container">
       <button
-        className="style-toggle"
+        className="absolute top-4 right-4 z-10 w-10 h-10 rounded-xl flex items-center justify-center pointer-events-auto transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
+        style={{
+          background: 'rgba(26,26,26,0.75)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
         onClick={toggleStyle}
         aria-label={isSatellite ? 'Switch to street map' : 'Switch to satellite'}
       >
-        {isSatellite ? '🗺️' : '🛰️'}
+        {isSatellite ? (
+          <Map className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+        ) : (
+          <Layers className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+        )}
       </button>
       {children}
     </div>

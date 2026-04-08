@@ -5,6 +5,7 @@ export interface TourStop {
   description: string;
   image: string;
   audio: string;
+  transcription?: string;
   onSimulationRoute: boolean;
 }
 
