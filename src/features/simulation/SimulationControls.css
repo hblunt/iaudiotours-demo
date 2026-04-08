@@ -1,0 +1,51 @@
+.sim-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-bar-height);
+  background: var(--color-bg);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: 0 var(--space-xl);
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.sim-btn {
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.sim-btn:active {
+  transform: scale(0.97);
+}
+
+.sim-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+
+.sim-btn-primary:hover {
+  background: var(--color-primary-light);
+}
+
+.sim-btn-exit {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-muted);
+}
+
+.sim-btn-exit:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.sim-indicator {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

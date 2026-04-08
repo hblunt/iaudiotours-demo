@@ -1,0 +1,44 @@
+{
+  "tourId": "thargomindah-heritage",
+  "townName": "Thargomindah",
+  "council": "Bulloo Shire Council",
+  "region": "Outback Queensland",
+  "center": [-27.992907, 143.821066],
+  "defaultZoom": 15,
+  "bounds": [[-28.005, 143.800], [-27.985, 143.825]],
+  "simulationRoute": {
+    "startBearing": 90,
+    "pitch": 60,
+    "zoom": 17,
+    "stopIds": ["old-jail", "leahy-house"]
+  },
+  "stops": [
+    {
+      "id": "old-jail",
+      "name": "Old Thargomindah Jail",
+      "coordinates": [-27.997165, 143.820692],
+      "description": "Step inside Thargomindah's Old Jail, a weathered cypress pine fortress from 1930 that once housed rustlers and stock thieves from the wild pastoral frontier — peek through its high barred windows and meet the lifelike figures that bring the outback's rougher days to vivid life.",
+      "image": "assets/images/old-jail.jpg",
+      "audio": "assets/audio/old-jail.mp3",
+      "onSimulationRoute": true
+    },
+    {
+      "id": "leahy-house",
+      "name": "Leahy Historical House",
+      "coordinates": [-27.997111, 143.821866],
+      "description": "The Leahy Historical House, built from Bulloo River mud bricks around 1885, opens its four rooms to transport you straight back to the 1890s, where you can walk through the domestic world of this frontier town during its boom days.",
+      "image": "assets/images/leahy-house.jpg",
+      "audio": "assets/audio/leahy-house.mp3",
+      "onSimulationRoute": true
+    },
+    {
+      "id": "hydro-plant",
+      "name": "Hydro Power Plant",
+      "coordinates": [-27.983388, 143.814884],
+      "description": "In 1893, Thargomindah made world history — this humble outback town harnessed the raw pressure of an underground artesian bore struck at 808 metres to power Australia's first hydroelectric street lights, making it just the third town on Earth to shine with electricity from flowing water.",
+      "image": "assets/images/hydro-plant.jpg",
+      "audio": "assets/audio/hydro-plant.mp3",
+      "onSimulationRoute": false
+    }
+  ]
+}
